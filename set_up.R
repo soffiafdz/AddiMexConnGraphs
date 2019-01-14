@@ -1,27 +1,34 @@
-#Packages ==========================
+
+# Packages and functions --------------------------------------------------
+
 pacman::p_load(brainGraph, data.table, tidyverse, reshape2, 
                foreach, doParallel, plyr, afex, GGally, ggpubr)
-registerDoParallel(cores=1)
+
+registerDoParallel(cores=3)
 
 
 # Functions -----------------------------------------------------------------------------------
 
 source('custom_functions.R')
 
-#Location dependancy  ==========================
-#Tango
-home <- '/run/media/sofdez/Alpha/addimex_conn/derivatives/graphs/'
-#Huasteca
-#home <- '/media/neuroimagen/Alpha/addimex_conn/derivatives/graphs/'
 
-#Constants  ==========================
+# Location dependency -----------------------------------------------------
+
+#Tango
+# home <- '/run/media/sofdez/Alpha/addimex_conn/derivatives/graphs/'
+#Huasteca
+home <- '/media/neuroimagen/Alpha/addimex_conn/derivatives/graphs/'
+
+
+# Constants ---------------------------------------------------------------
+
 today <- format(Sys.Date(), '%m-%y')
 savedir <- paste0(home, 'brainGraph/')
 savedir1 <- paste0(savedir, today, "_")
 groups <- c('Control', 'User')
 atlas <- "power"
 modality <- 'fmri'
-covars <- fread(paste(home, "participants_pwr.tsv", sep ="/"), na.strings = "n/a")
+covars <- fread("participants_pwr.tsv", na.strings = "n/a")
     names(covars) <- c("Study.ID",
                        "Group",
                        "Sex",
