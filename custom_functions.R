@@ -8,11 +8,11 @@ ext_mat_files <- function(net) {
       list.files(list.dirs(paste(datadir, net, "cu", sep = '/'), recursive = T), "*.csv", full.names = T))
 }
 
-cr_mats_soph <- function(matfiles, ind, thr_mt) {
+cr_mats_soph <- function(matfiles, ind, thr_mt, thresh) {
     create_mats(matfiles, 
                 modality = modality,
                 threshold.by = thr_mt,
-                mat.thresh = thresholds,
+                mat.thresh = thresh,
                 sub.thresh = sub.thresh, 
                 inds = ind)
 }
