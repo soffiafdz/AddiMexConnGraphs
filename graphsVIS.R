@@ -1,17 +1,14 @@
 
-# Set-up --------------------------------------------------------------------------------------
+# Consensus -----------------------------------------------------------------------------------
 
-A.norm.sub <- matsVIS$A.norm.sub
-A.norm.mean <- matsVIS$A.norm.mean
+A.norm.sub <- matsVIS1$A.norm.sub
+A.norm.mean <- matsVIS1$A.norm.mean
 atlas <- "pVIS"
-g.groupVIS <- gVIS <- fnames <- vector('list', length=length(groups))
-
-
-# Code ----------------------------------------------------------------------------------------
+g1GrVIS <- g1VIS <- fnames <- vector('list', length=length(groups))
 
 for (i in seq_along(groups)) {
-    for (j in seq_along(thresholds)) {
-        print(paste0('Threshold ', j, '/', length(thresholds), '; group ', i, '; ', 
+    for (j in seq_along(thresh1)) {
+        print(paste0('Threshold ', j, '/', length(thresh1), '; group ', i, '; ', 
                      format(Sys.time(), '%H:%M:%S')))
         
         foreach (k=seq_along(inds[[i]])) %dopar% {
@@ -20,47 +17,169 @@ for (i in seq_along(groups)) {
             V(g.tmp)$name <- as.character(pVIS$name)
             
             g.tmp <- set_brainGraph_attr_sof(g.tmp, atlas, modality = 'fmri',
-                                             weighting = 'sld', threshold = thresholds[j], 
+                                             weighting = 'sld', threshold = thresh1[j], 
                                              subject = covars[groups[i], Study.ID[k]], 
                                              group = groups[i], 
                                              use.parallel = F, 
                                              A = A.norm.sub[[j]][, , inds[[i]][k]])
             write_rds(g.tmp, paste0(savedir1, 
-                                         sprintf('g%i_thr%02i_subj%03i%s', i, j, k, '.rds')))
+                                    sprintf('g%i_thr%02i_subj%03i%s', i, j, k, '.rds')))
         }
     }
     
     # group mean weighted graphs
     print(paste0('Group', i, '; ', format(Sys.time(), '%H:%M:%S')))
-    g.groupVIS[[i]] <- lapply(seq_along(thresholds), function(x) 
+    g1GrVIS[[i]] <- lapply(seq_along(thresh1), function(x) 
         graph_from_adjacency_matrix(A.norm.mean[[x]][[i]], 
                                     mode = 'undirected', diag = F, weighted = T))
     
-    for (x in seq_along(thresholds)) {V(g.groupVIS[[i]][[x]])$name <- as.character(pVIS$name)}
+    for (x in seq_along(thresh1)) {V(g1GrVIS[[i]][[x]])$name <- as.character(pVIS$name)}
     
-    g.groupVIS[[i]] <- llply(seq_along(thresholds), function(x) 
-        set_brainGraph_attr_sof(g.groupVIS[[i]][[x]], atlas, modality = 'fmri', 
-                                weighting = 'sld', threshold = thresholds[x], 
+    g1GrVIS[[i]] <- llply(seq_along(thresh1), function(x) 
+        set_brainGraph_attr_sof(g1GrVIS[[i]][[x]], atlas, modality = 'fmri', 
+                                weighting = 'sld', threshold = thresh1[x], 
                                 group = groups[i], A = A.norm.mean[[x]][[i]], 
                                 use.parallel = F), .parallel = T)
     
 }
 
 for (i in seq_along(groups)) {
-    gVIS[[i]] <- fnames[[i]] <- vector('list', length = length(thresholds))
-    for (j in seq_along(thresholds)) {
+    g1VIS[[i]] <- fnames[[i]] <- vector('list', length = length(thresh1))
+    for (j in seq_along(thresh1)) {
         fnames[[i]][[j]] <- list.files(savedir, 
                                        sprintf('*g%i_thr%02i.*', i, j), full.names = T)
-        gVIS[[i]][[j]] <- lapply(fnames[[i]][[j]], readRDS)
+        g1VIS[[i]][[j]] <- lapply(fnames[[i]][[j]], read_rds)
     }
     
-    x <- all.equal(sapply(gVIS[[i]][[1]], graph_attr, 'name'),
+    x <- all.equal(sapply(g1VIS[[i]][[1]], graph_attr, 'name'),
                    covars[groups[i], Study.ID])
     if (isTRUE(x)) lapply(fnames[[i]], file.remove)
 }
 
-# Save RDS ------------------------------------------------------------------------------------
 
-write_rds(gVIS, paste0(savedir1, 'gVIS.rds'))
-write_rds(g.groupVIS, paste0(savedir1, 'g.groupVIS.rds'))
+write_rds(g1VIS, paste0(savedir1, 'g1VIS.rds'))
+write_rds(g1GrVIS, paste0(savedir1, 'g1GrVIS.rds'))
 
+
+# Density -------------------------------------------------------------------------------------
+
+A.norm.sub <- matsVIS2$A.norm.sub
+A.norm.mean <- matsVIS2$A.norm.mean
+atlas <- "pVIS"
+g2GrVIS <- g2VIS <- fnames <- vector('list', length=length(groups))
+
+for (i in seq_along(groups)) {
+    for (j in seq_along(thresh2)) {
+        print(paste0('Threshold ', j, '/', length(thresh2), '; group ', i, '; ', 
+                     format(Sys.time(), '%H:%M:%S')))
+        
+        foreach (k=seq_along(inds[[i]])) %dopar% {
+            g.tmp <- graph_from_adjacency_matrix(A.norm.sub[[j]][, , inds[[i]][k]],
+                                                 mode='undirected', diag = F, weighted = T)
+            V(g.tmp)$name <- as.character(pVIS$name)
+            
+            g.tmp <- set_brainGraph_attr_sof(g.tmp, atlas, modality = 'fmri',
+                                             weighting = 'sld', threshold = thresh2[j], 
+                                             subject = covars[groups[i], Study.ID[k]], 
+                                             group = groups[i], 
+                                             use.parallel = F, 
+                                             A = A.norm.sub[[j]][, , inds[[i]][k]])
+            write_rds(g.tmp, paste0(savedir1, 
+                                    sprintf('g%i_thr%02i_subj%03i%s', i, j, k, '.rds')))
+        }
+    }
+    
+    # group mean weighted graphs
+    print(paste0('Group', i, '; ', format(Sys.time(), '%H:%M:%S')))
+    g2GrVIS[[i]] <- lapply(seq_along(thresh2), function(x) 
+        graph_from_adjacency_matrix(A.norm.mean[[x]][[i]], 
+                                    mode = 'undirected', diag = F, weighted = T))
+    
+    for (x in seq_along(thresh2)) {V(g2GrVIS[[i]][[x]])$name <- as.character(pVIS$name)}
+    
+    g2GrVIS[[i]] <- llply(seq_along(thresh2), function(x) 
+        set_brainGraph_attr_sof(g2GrVIS[[i]][[x]], atlas, modality = 'fmri', 
+                                weighting = 'sld', threshold = thresh2[x], 
+                                group = groups[i], A = A.norm.mean[[x]][[i]], 
+                                use.parallel = F), .parallel = T)
+    
+}
+
+for (i in seq_along(groups)) {
+    g2VIS[[i]] <- fnames[[i]] <- vector('list', length = length(thresh2))
+    for (j in seq_along(thresh2)) {
+        fnames[[i]][[j]] <- list.files(savedir, 
+                                       sprintf('*g%i_thr%02i.*', i, j), full.names = T)
+        g2VIS[[i]][[j]] <- lapply(fnames[[i]][[j]], read_rds)
+    }
+    
+    x <- all.equal(sapply(g2VIS[[i]][[1]], graph_attr, 'name'),
+                   covars[groups[i], Study.ID])
+    if (isTRUE(x)) lapply(fnames[[i]], file.remove)
+}
+
+
+write_rds(g2VIS, paste0(savedir1, 'g2VIS.rds'))
+write_rds(g2GrVIS, paste0(savedir1, 'g2GrVIS.rds'))
+
+
+# Consistency ---------------------------------------------------------------------------------
+
+A.norm.sub <- matsVIS3$A.norm.sub
+A.norm.mean <- matsVIS3$A.norm.mean
+atlas <- "pVIS"
+g3GrVIS <- g3VIS <- fnames <- vector('list', length=length(groups))
+
+for (i in seq_along(groups)) {
+    for (j in seq_along(thresh2)) {
+        print(paste0('Threshold ', j, '/', length(thresh2), '; group ', i, '; ', 
+                     format(Sys.time(), '%H:%M:%S')))
+        
+        foreach (k=seq_along(inds[[i]])) %dopar% {
+            g.tmp <- graph_from_adjacency_matrix(A.norm.sub[[j]][, , inds[[i]][k]],
+                                                 mode='undirected', diag = F, weighted = T)
+            V(g.tmp)$name <- as.character(pVIS$name)
+            
+            g.tmp <- set_brainGraph_attr_sof(g.tmp, atlas, modality = 'fmri',
+                                             weighting = 'sld', threshold = thresh2[j], 
+                                             subject = covars[groups[i], Study.ID[k]], 
+                                             group = groups[i], 
+                                             use.parallel = F, 
+                                             A = A.norm.sub[[j]][, , inds[[i]][k]])
+            write_rds(g.tmp, paste0(savedir1, 
+                                    sprintf('g%i_thr%02i_subj%03i%s', i, j, k, '.rds')))
+        }
+    }
+    
+    # group mean weighted graphs
+    print(paste0('Group', i, '; ', format(Sys.time(), '%H:%M:%S')))
+    g3GrVIS[[i]] <- lapply(seq_along(thresh2), function(x) 
+        graph_from_adjacency_matrix(A.norm.mean[[x]][[i]], 
+                                    mode = 'undirected', diag = F, weighted = T))
+    
+    for (x in seq_along(thresh2)) {V(g3GrVIS[[i]][[x]])$name <- as.character(pVIS$name)}
+    
+    g3GrVIS[[i]] <- llply(seq_along(thresh2), function(x) 
+        set_brainGraph_attr_sof(g3GrVIS[[i]][[x]], atlas, modality = 'fmri', 
+                                weighting = 'sld', threshold = thresh2[x], 
+                                group = groups[i], A = A.norm.mean[[x]][[i]], 
+                                use.parallel = F), .parallel = T)
+    
+}
+
+for (i in seq_along(groups)) {
+    g3VIS[[i]] <- fnames[[i]] <- vector('list', length = length(thresh2))
+    for (j in seq_along(thresh2)) {
+        fnames[[i]][[j]] <- list.files(savedir, 
+                                       sprintf('*g%i_thr%02i.*', i, j), full.names = T)
+        g3VIS[[i]][[j]] <- lapply(fnames[[i]][[j]], read_rds)
+    }
+    
+    x <- all.equal(sapply(g3VIS[[i]][[1]], graph_attr, 'name'),
+                   covars[groups[i], Study.ID])
+    if (isTRUE(x)) lapply(fnames[[i]], file.remove)
+}
+
+
+write_rds(g3VIS, paste0(savedir1, 'g3VIS.rds'))
+write_rds(g3GrVIS, paste0(savedir1, 'g3GrVIS.rds'))
